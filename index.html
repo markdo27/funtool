@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PUSHTYPE — Push & Type Poster Studio</title>
+<meta name="description" content="Push and pull image blocks in 3D relief, then type in any direction to create creative posters." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@400;700&family=Bebas+Neue&family=Anton&family=Archivo+Black&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: #070709; color: #e8e8f0; }
+body { font-family: 'JetBrains Mono', monospace; font-size: 11px; -webkit-font-smoothing: antialiased; user-select: none; }
+button { cursor: pointer; border: none; background: none; color: inherit; font: inherit; }
+input, select { font: inherit; color: inherit; }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 2px; }
+
+/* ═══ LAYOUT ═══ */
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+/* TOPBAR */
+#topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 46px; padding: 0 12px; flex-shrink: 0;
+  background: #0b0b10; border-bottom: 1px solid rgba(255,255,255,.07);
+  position: relative; z-index: 50;
+}
+#topbar::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, #00dfff 40%, #ff2868 60%, transparent); opacity: .28;
+}
+.logo { display: flex; align-items: baseline; gap: 0; font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700; }
+.logo-a { color: #00dfff; text-shadow: 0 0 12px rgba(0,223,255,.45); }
+.logo-b { color: #ff2868; text-shadow: 0 0 12px rgba(255,40,104,.45); }
+.logo-tag { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #3a3a55; letter-spacing: .18em; margin-left: 7px; }
+.topbar-right { display: flex; gap: 5px; align-items: center; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 11px; border: 1px solid rgba(255,255,255,.09);
+  border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: .07em;
+  color: #606080; background: transparent; transition: all .12s; white-space: nowrap;
+}
+.btn:hover { color: #d0d0f0; border-color: rgba(0,223,255,.25); background: rgba(0,223,255,.04); }
+.btn:active { transform: scale(.96); }
+.btn-red { background: #ff2868; color: #fff; border-color: #ff2868; box-shadow: 0 0 12px rgba(255,40,104,.25); }
+.btn-red:hover { background: #ff4880; border-color: #ff4880; color: #fff; box-shadow: 0 0 20px rgba(255,40,104,.4); }
+
+/* MAIN */
+#main { display: flex; flex: 1; min-height: 0; }
+
+/* PANELS */
+.panel { width: 188px; flex-shrink: 0; overflow-y: auto; background: #09090e; display: flex; flex-direction: column; }
+#panel-l { border-right: 1px solid rgba(255,255,255,.06); }
+#panel-r { border-left:  1px solid rgba(255,255,255,.06); }
+
+.sec { padding: 10px 11px 12px; border-bottom: 1px solid rgba(255,255,255,.055); }
+.sec:last-child { border-bottom: none; margin-top: auto; }
+.sec-t { font-size: 9px; font-weight: 700; letter-spacing: .2em; color: #333355; text-transform: uppercase; margin-bottom: 8px; }
+
+/* MODE BUTTONS */
+.modes { display: flex; gap: 4px; }
+.mdbtn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 7px 4px; border: 1px solid rgba(255,255,255,.07);
+  border-radius: 4px; background: rgba(255,255,255,.02);
+  font-size: 9px; letter-spacing: .1em; color: #444460;
+  transition: all .12s;
+}
+.mdbtn .ic { font-size: 17px; line-height: 1; }
+.mdbtn:hover { border-color: rgba(255,255,255,.14); color: #9090b0; }
+.mdbtn.push-a { border-color: #00dfff; color: #00dfff; background: rgba(0,223,255,.07); box-shadow: 0 0 10px rgba(0,223,255,.12); }
+.mdbtn.type-a { border-color: #ff2868; color: #ff2868; background: rgba(255,40,104,.07); box-shadow: 0 0 10px rgba(255,40,104,.12); }
+
+/* SLIDERS */
+.ctrl { display: flex; flex-direction: column; gap: 4px; margin-bottom: 9px; }
+.ctrl:last-child { margin-bottom: 0; }
+.ctrl-h { display: flex; justify-content: space-between; }
+.lbl { font-size: 9px; color: #444460; letter-spacing: .05em; }
+.val { font-size: 9px; color: #00dfff; }
+.sl {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 2px; border-radius: 1px;
+  background: rgba(255,255,255,.09); outline: none; cursor: pointer;
+}
+.sl::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 11px; height: 11px; border-radius: 50%;
+  background: #00dfff; box-shadow: 0 0 5px rgba(0,223,255,.5); cursor: pointer;
+}
+.sl::-moz-range-thumb {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: #00dfff; border: none; box-shadow: 0 0 5px rgba(0,223,255,.5);
+}
+
+/* SMALL BUTTON GRID */
+.small-btns { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+.smb {
+  padding: 4px 7px; border: 1px solid rgba(255,255,255,.07);
+  border-radius: 3px; font-size: 9px; color: #444460; letter-spacing: .06em;
+  background: rgba(255,255,255,.02); transition: all .1s;
+}
+.smb:hover { border-color: rgba(0,223,255,.2); color: #9090b0; }
+.smb.on { border-color: #00dfff; color: #00dfff; background: rgba(0,223,255,.08); }
+
+/* TYPE DIR BUTTONS */
+.tdirs { display: flex; flex-direction: column; gap: 3px; }
+.tdir {
+  padding: 5px 8px; border: 1px solid rgba(255,255,255,.07);
+  border-radius: 3px; font-size: 9px; color: #444460; letter-spacing: .06em;
+  background: rgba(255,255,255,.02); transition: all .1s; text-align: left;
+}
+.tdir:hover { border-color: rgba(255,40,104,.2); color: #9090b0; }
+.tdir.on { border-color: #ff2868; color: #ff2868; background: rgba(255,40,104,.07); }
+
+/* COLOR SWATCHES */
+.swatches { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.sw {
+  width: 20px; height: 20px; border-radius: 3px;
+  border: 2px solid transparent; cursor: pointer; transition: transform .1s;
+}
+.sw:hover { transform: scale(1.18); }
+.sw.on { border-color: #fff; }
+.cpick {
+  width: 26px; height: 20px; border: 1px solid rgba(255,255,255,.09);
+  border-radius: 3px; background: none; padding: 1px; cursor: pointer;
+}
+.cpick::-webkit-color-swatch-wrapper { padding: 0; border-radius: 2px; }
+.cpick::-webkit-color-swatch { border: none; border-radius: 2px; }
+
+/* SELECT */
+.sel {
+  width: 100%; padding: 4px 7px; margin-top: 4px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+  border-radius: 3px; color: #bbb; font-size: 10px; outline: none; cursor: pointer;
+}
+.sel:focus { border-color: rgba(0,223,255,.25); }
+.sel option { background: #111; }
+
+/* CANVAS WRAPPER */
+#canvas-wrap {
+  flex: 1; position: relative; overflow: hidden; background: #050508;
+}
+#canvas-wrap::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background-image: linear-gradient(rgba(0,223,255,.015) 1px,transparent 1px),
+                    linear-gradient(90deg,rgba(0,223,255,.015) 1px,transparent 1px);
+  background-size: 24px 24px;
+}
+#push-c { display: block; position: absolute; top: 0; left: 0; z-index: 2; }
+#type-c { display: block; position: absolute; top: 0; left: 0; z-index: 3; background: transparent; }
+#sel-c  { display: block; position: absolute; top: 0; left: 0; z-index: 4; pointer-events: none; }
+
+/* EMPTY STATE */
+#empty {
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  pointer-events: none; transition: opacity .3s;
+}
+#empty.gone { opacity: 0; }
+#empty .big { font-size: 52px; opacity: .06; }
+#empty .l1  { font-size: 12px; color: #333355; letter-spacing: .14em; }
+#empty .l2  { font-size: 10px; color: #272736; letter-spacing: .06em; }
+
+/* TOAST */
+#toast {
+  position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+  font-size: 10px; color: #00dfff; background: rgba(0,0,0,.75);
+  padding: 4px 14px; border-radius: 10px;
+  pointer-events: none; opacity: 0; transition: opacity .2s; z-index: 20;
+}
+#toast.show { opacity: 1; }
+
+/* HINT BAR */
+#hint {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  font-size: 9px; color: #252530; letter-spacing: .1em;
+  pointer-events: none; white-space: nowrap; transition: opacity .5s;
+}
+#hint.gone { opacity: 0; }
+
+/* LAYERS LIST */
+#layers { display: flex; flex-direction: column; gap: 3px; max-height: 120px; overflow-y: auto; }
+.layer-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 3px 7px; border: 1px solid rgba(255,255,255,.06);
+  border-radius: 3px; font-size: 9px; cursor: pointer; color: #505070;
+  background: rgba(255,255,255,.01); transition: border-color .1s;
+}
+.layer-row:hover { border-color: rgba(255,40,104,.2); }
+.layer-row.on { border-color: #ff2868; color: #ff2868; background: rgba(255,40,104,.06); }
+.layer-del { opacity: .35; transition: opacity .1s; }
+.layer-del:hover { opacity: 1; color: #ff2868; }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- TOPBAR -->
+<header id="topbar">
+  <div class="logo">
+    <span class="logo-a">PUSH</span><span class="logo-b">TYPE</span>
+    <span class="logo-tag">poster studio</span>
+  </div>
+  <div class="topbar-right">
+    <button class="btn" id="btn-load">↑ Load Image</button>
+    <input type="file" id="file-in" accept="image/*" style="display:none" />
+    <button class="btn" id="btn-undo">↩ Undo</button>
+    <button class="btn" id="btn-reset">⟳ Reset</button>
+    <button class="btn btn-red" id="btn-export">↓ Export PNG</button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- LEFT PANEL -->
+  <aside class="panel" id="panel-l">
+
+    <div class="sec">
+      <div class="sec-t">Mode</div>
+      <div class="modes">
+        <button class="mdbtn push-a" id="md-push"><span class="ic">⊕</span>PUSH</button>
+        <button class="mdbtn" id="md-type"><span class="ic">T</span>TYPE</button>
+      </div>
+    </div>
+
+    <!-- PUSH PANEL -->
+    <div id="push-panel">
+      <div class="sec">
+        <div class="sec-t">Grid</div>
+        <div class="ctrl">
+          <div class="ctrl-h"><span class="lbl">Cell Size</span><span class="val" id="v-cell">32px</span></div>
+          <input type="range" class="sl" id="s-cell" min="8" max="96" value="32" step="4" />
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-h"><span class="lbl">Stack Depth</span><span class="val" id="v-depth">6</span></div>
+          <input type="range" class="sl" id="s-depth" min="1" max="20" value="6" step="1" />
+          <span style="font-size:8px;color:#2a2a3a;margin-top:2px">cubes per column</span>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">Push / Pull</div>
+        <div class="ctrl">
+          <div class="ctrl-h"><span class="lbl">Step per key</span><span class="val" id="v-step">1</span></div>
+          <input type="range" class="sl" id="s-step" min="1" max="10" value="1" step="1" />
+        </div>
+        <div style="font-size:9px;color:#2d2d40;line-height:1.8;margin-top:2px;">
+          <b style="color:#444460">Select:</b> Click or drag blocks<br/>
+          <b style="color:#444460">↑ / W:</b> Push selected forward<br/>
+          <b style="color:#444460">↓ / S:</b> Pull selected back<br/>
+          <b style="color:#444460">Scroll:</b> Orbit / zoom camera<br/>
+          <b style="color:#444460">Shift+drag:</b> Add to selection<br/>
+          <b style="color:#444460">Esc:</b> Deselect all
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">Camera Angle</div>
+        <div class="ctrl">
+          <div class="ctrl-h"><span class="lbl">Tilt X</span><span class="val" id="v-rx">-15°</span></div>
+          <input type="range" class="sl" id="s-rx" min="-60" max="60" value="-15" step="1" />
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-h"><span class="lbl">Tilt Y</span><span class="val" id="v-ry">0°</span></div>
+          <input type="range" class="sl" id="s-ry" min="-60" max="60" value="0" step="1" />
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-h"><span class="lbl">Zoom</span><span class="val" id="v-fov">45°</span></div>
+          <input type="range" class="sl" id="s-fov" min="20" max="90" value="45" step="1" />
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">History</div>
+        <div id="hist-c" style="font-size:9px;color:#333355">0 steps</div>
+      </div>
+    </div>
+
+    <!-- TYPE PANEL -->
+    <div id="type-panel" style="display:none">
+      <div class="sec">
+        <div class="sec-t">Direction</div>
+        <div class="tdirs">
+          <button class="tdir on" data-d="right">→ Right</button>
+          <button class="tdir" data-d="left">← Left</button>
+          <button class="tdir" data-d="down">↓ Down</button>
+          <button class="tdir" data-d="up">↑ Up</button>
+          <button class="tdir" data-d="radial">◎ Radial</button>
+        </div>
+        <div style="font-size:9px;color:#2a2a3a;line-height:1.8;margin-top:8px;">
+          Click canvas to place cursor<br/>
+          Type characters freely<br/>
+          Backspace to delete<br/>
+          Enter for new line<br/>
+          Esc to deselect layer
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- CANVAS AREA -->
+  <div id="canvas-wrap">
+    <canvas id="push-c"></canvas>
+    <canvas id="type-c"></canvas>
+    <canvas id="sel-c"></canvas>
+
+    <div id="empty">
+      <div class="big">⊕</div>
+      <div class="l1">DROP IMAGE HERE</div>
+      <div class="l2">or click Load Image · Ctrl+V to paste</div>
+    </div>
+    <div id="hint">P — push &nbsp; T — type &nbsp; ↑↓ push selected &nbsp; E — export &nbsp; Ctrl+Z — undo</div>
+    <div id="toast"></div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <aside class="panel" id="panel-r">
+
+    <div class="sec">
+      <div class="sec-t">Font</div>
+      <select class="sel" id="sel-font">
+        <option value="'Bebas Neue',sans-serif">Bebas Neue</option>
+        <option value="'Anton',sans-serif">Anton</option>
+        <option value="'Archivo Black',sans-serif">Archivo Black</option>
+        <option value="'Space Grotesk',sans-serif" selected>Space Grotesk</option>
+        <option value="'JetBrains Mono',monospace">JetBrains Mono</option>
+        <option value="Impact,sans-serif">Impact</option>
+        <option value="Georgia,serif">Georgia</option>
+        <option value="Arial Black,sans-serif">Arial Black</option>
+      </select>
+    </div>
+
+    <div class="sec">
+      <div class="sec-t">Typography</div>
+      <div class="ctrl">
+        <div class="ctrl-h"><span class="lbl">Size</span><span class="val" id="v-fs">72</span></div>
+        <input type="range" class="sl" id="s-fs" min="12" max="300" value="72" />
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-h"><span class="lbl">Letter Spacing</span><span class="val" id="v-ls">0</span></div>
+        <input type="range" class="sl" id="s-ls" min="-10" max="80" value="0" />
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-h"><span class="lbl">Opacity</span><span class="val" id="v-op">100%</span></div>
+        <input type="range" class="sl" id="s-op" min="10" max="100" value="100" />
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-h"><span class="lbl">Style</span></div>
+        <div class="small-btns">
+          <button class="smb" id="btn-bold">Bold</button>
+          <button class="smb" id="btn-italic">Italic</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-t">Text Color</div>
+      <div class="swatches" id="sw-box"></div>
+      <div style="display:flex;align-items:center;gap:7px;margin-top:7px">
+        <span class="lbl">Custom</span>
+        <input type="color" class="cpick" id="color-pick" value="#ffffff" />
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-t">Push Colors</div>
+      <div class="ctrl">
+        <div class="ctrl-h"><span class="lbl">Background</span></div>
+        <input type="color" class="cpick" id="bg-pick" value="#0a0a10" style="margin-top:4px" />
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-t">Text Layers</div>
+      <div id="layers"></div>
+      <button class="btn" id="btn-clrtxt" style="margin-top:7px;width:100%;justify-content:center">Clear All</button>
+    </div>
+
+  </aside>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<script src="https://unpkg.com/three@0.157.0/build/three.min.js"></script>
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════════════
+   PUSHTYPE
+   PUSH engine: Three.js instanced 3D cubes stacked in columns.
+                Each grid cell = a column of `depth` cubes.
+                heightGrid[cell] = how many cubes are visible (pushed up).
+                Arrow keys push/pull selected columns.
+   TYPE engine: Canvas 2D directional text cursor.
+   ═══════════════════════════════════════════════════════════════════ */
+
+// ── DOM REFS ─────────────────────────────────────────────────────
+const pushC = document.getElementById('push-c');
+const typeC = document.getElementById('type-c');
+const selC  = document.getElementById('sel-c');
+const wrap  = document.getElementById('canvas-wrap');
+const tCtx  = typeC.getContext('2d');
+const sCtx  = selC.getContext('2d');
+
+// ── GLOBAL STATE ─────────────────────────────────────────────────
+const G = {
+  hasImg: false,
+  img: null,
+
+  /* Push */
+  push: {
+    cols: 0, rows: 0,
+    cellSize: 32,       // pixel size of each cell on the image
+    depth: 6,           // cubes stacked per column (max push height)
+    step: 1,            // cubes per ↑/↓ press
+    heightGrid: [],     // [cols*rows] integer 0..depth  (how many cubes shown)
+    selectedGrid: [],   // [cols*rows] 0|1
+    history: [],
+    maxHist: 30,
+  },
+
+  /* Camera */
+  cam: {
+    rotX: -15,          // degrees, pitch
+    rotY: 0,            // degrees, yaw
+    fov: 45,
+    dist: 300,          // auto-set from image
+  },
+
+  /* Three */
+  t3: {
+    renderer: null,
+    scene: null,
+    camera: null,
+    group: null,        // THREE.Group containing all column meshes
+    cols3D: [],         // per-column InstancedMesh (or just one big instanced)
+    mesh: null,         // single big InstancedMesh
+    texture: null,
+    imgW: 0, imgH: 0,
+    animId: null,
+  },
+
+  /* Type */
+  type: {
+    dir: 'right',
+    font: "'Space Grotesk',sans-serif",
+    size: 72,
+    spacing: 0,
+    opacity: 1,
+    color: '#ffffff',
+    bold: false,
+    italic: false,
+    layers: [],
+    active: null,       // currently editing layer
+    blink: true,
+  },
+
+  mode: 'push',
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// THREE.JS PUSH ENGINE
+// ═══════════════════════════════════════════════════════════════════
+
+function initThree() {
+  const { t3, cam } = G;
+
+  t3.renderer = new THREE.WebGLRenderer({ canvas: pushC, antialias: true });
+  t3.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  t3.scene = new THREE.Scene();
+  t3.scene.background = new THREE.Color(document.getElementById('bg-pick').value);
+
+  t3.camera = new THREE.PerspectiveCamera(cam.fov, 1, 0.1, 10000);
+
+  // Lighting
+  t3.scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+  const d1 = new THREE.DirectionalLight(0xffffff, 0.8);
+  d1.position.set(2, 3, 5); t3.scene.add(d1);
+  const d2 = new THREE.DirectionalLight(0x6080ff, 0.3);
+  d2.position.set(-3, -1, 2); t3.scene.add(d2);
+
+  t3.group = new THREE.Group();
+  t3.scene.add(t3.group);
+
+  resizeAll();
+  animLoop();
+}
+
+function resizeAll() {
+  const { t3 } = G;
+  const W = wrap.clientWidth;
+  const H = wrap.clientHeight;
+
+  pushC.width = W; pushC.height = H;
+  typeC.width = W; typeC.height = H;
+  selC.width  = W; selC.height  = H;
+
+  if (t3.renderer) {
+    t3.renderer.setSize(W, H, false);
+    t3.camera.aspect = W / H;
+    t3.camera.updateProjectionMatrix();
+  }
+  applyCamera();
+}
+
+function applyCamera() {
+  const { t3, cam } = G;
+  if (!t3.camera) return;
+  t3.camera.fov = cam.fov;
+  t3.camera.updateProjectionMatrix();
+
+  const rx = cam.rotX * Math.PI / 180;
+  const ry = cam.rotY * Math.PI / 180;
+  t3.camera.position.set(
+    Math.sin(ry) * cam.dist,
+    -Math.sin(rx) * cam.dist,
+    Math.cos(ry) * Math.cos(rx) * cam.dist
+  );
+  t3.camera.lookAt(0, 0, 0);
+}
+
+function animLoop() {
+  G.t3.animId = requestAnimationFrame(animLoop);
+  G.t3.renderer.render(G.t3.scene, G.t3.camera);
+}
+
+// ── BUILD MESH FROM IMAGE ─────────────────────────────────────────
+// Architecture exactly like constraint-systems/push:
+//   - Each grid cell (col, row) = one column of cubes
+//   - Each cube = BoxGeometry(cellSize, cellSize, cellSize)
+//   - Total instances = cols * rows * depth
+//   - Instance index = (row * cols + col) * depth + d  (d = 0..depth-1)
+//   - heightGrid[gridIdx] = number of cubes visible (0..depth)
+//   - visible attribute controls per-instance visibility
+//   - Texture UV maps the front face to the correct image region
+// ─────────────────────────────────────────────────────────────────
+function buildMesh(imgEl) {
+  const { t3, push } = G;
+
+  // Clear old
+  if (t3.mesh) {
+    t3.group.remove(t3.mesh);
+    t3.mesh.geometry.dispose();
+    t3.mesh.material.dispose();
+    t3.mesh = null;
+  }
+  if (t3.texture) { t3.texture.dispose(); t3.texture = null; }
+
+  const cs = push.cellSize;
+  const D  = push.depth;
+
+  const imgW = imgEl.naturalWidth;
+  const imgH = imgEl.naturalHeight;
+  t3.imgW = imgW; t3.imgH = imgH;
+
+  const cols = Math.floor(imgW / cs);
+  const rows = Math.floor(imgH / cs);
+  push.cols = cols; push.rows = rows;
+
+  const count  = cols * rows * D;
+  const nCells = cols * rows;
+
+  // Init grids
+  push.heightGrid   = new Int32Array(nCells).fill(Math.floor(D / 2));
+  push.selectedGrid = new Uint8Array(nCells).fill(0);
+
+  // Texture
+  const tex = new THREE.Texture(imgEl);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  t3.texture = tex;
+
+  // BoxGeometry — cube exactly cs×cs×cs
+  // We'll use a shared geometry and custom UV offsets per instance via UV attribute trick:
+  // Actually we use a different approach: each column face gets clamped UV from the image region.
+  // The original uses custom UV per box face. We achieve this by putting all instances
+  // in one InstancedMesh but manually computing UVs per instance for the +Z face only.
+  // The simplest correct approach: one InstancedMesh with shared material & shared UVs,
+  // but with per-instance UV offset using a custom attribute.
+
+  const geo = new THREE.BoxGeometry(cs, cs, cs);
+
+  // The original maps front face (+Z) to image cell UV, sides are solid color.
+  // We do the same using a ShaderMaterial with per-instance uvOffset+uvScale attributes.
+  const uvOffset  = new Float32Array(count * 2); // per instance
+  const uvScale   = new Float32Array(count * 2);
+  const visArr    = new Float32Array(count);
+  const selArr    = new Float32Array(count);
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const gi = row * cols + col;
+      const u0 = col * cs / imgW;
+      const v0 = 1 - (row + 1) * cs / imgH;
+      const du = cs / imgW;
+      const dv = cs / imgH;
+      const h  = push.heightGrid[gi];
+
+      for (let d = 0; d < D; d++) {
+        const idx = gi * D + d;
+        uvOffset[idx * 2 + 0] = u0;
+        uvOffset[idx * 2 + 1] = v0;
+        uvScale [idx * 2 + 0] = du;
+        uvScale [idx * 2 + 1] = dv;
+        visArr[idx] = d < h ? 1.0 : 0.0;
+        selArr[idx] = 0.0;
+      }
+    }
+  }
+
+  geo.setAttribute('aUVOffset', new THREE.InstancedBufferAttribute(uvOffset, 2));
+  geo.setAttribute('aUVScale',  new THREE.InstancedBufferAttribute(uvScale,  2));
+  geo.setAttribute('aVisible',  new THREE.InstancedBufferAttribute(visArr,   1));
+  geo.setAttribute('aSelected', new THREE.InstancedBufferAttribute(selArr,   1));
+
+  // Shader material — front face (+Z) uses image UV, other faces use a side color
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uTex: { value: tex } },
+    vertexShader: `
+      attribute vec2 aUVOffset;
+      attribute vec2 aUVScale;
+      attribute float aVisible;
+      attribute float aSelected;
+      varying vec2 vUV;
+      varying float vFront;
+      varying float vSelected;
+      varying vec3 vNormal;
+      void main() {
+        vSelected = aSelected;
+        vNormal = normalize(normalMatrix * normal);
+        // Identify front face: normal in local space is (0,0,1)
+        vec3 localNorm = normal;
+        vFront = (localNorm.z > 0.5) ? 1.0 : 0.0;
+        // Map UV only for front face
+        vUV = aUVOffset + uv * aUVScale;
+        // Hide cube if not visible
+        vec3 pos = position;
+        if (aVisible < 0.5) {
+          pos = vec3(0.0, 0.0, -99999.0); // discard behind camera
+        }
+        gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(pos, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D uTex;
+      varying vec2 vUV;
+      varying float vFront;
+      varying float vSelected;
+      varying vec3 vNormal;
+      void main() {
+        vec4 col;
+        if (vFront > 0.5) {
+          col = texture2D(uTex, vUV);
+        } else {
+          // Side faces: darker version sampled from image
+          vec4 imgCol = texture2D(uTex, vUV);
+          float light = max(0.2, dot(vNormal, normalize(vec3(1.0,2.0,3.0))));
+          col = vec4(imgCol.rgb * light * 0.6, 1.0);
+        }
+        if (vSelected > 0.5) {
+          col.rgb = mix(col.rgb, vec3(0.0, 0.88, 1.0), 0.35);
+        }
+        gl_FragColor = col;
+      }
+    `,
+    side: THREE.FrontSide,
+  });
+
+  t3.mesh = new THREE.InstancedMesh(geo, mat, count);
+  t3.mesh.frustumCulled = false;
+  t3.group.add(t3.mesh);
+
+  // Set instance matrices (positions in world space)
+  // Image is centered at origin; Y flipped (image row 0 = top = positive Y)
+  const halfW = (cols * cs) / 2;
+  const halfH = (rows * cs) / 2;
+  const mat4  = new THREE.Matrix4();
+  const dummy = new THREE.Object3D();
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const gi = row * cols + col;
+      const h  = push.heightGrid[gi];
+      const cx = col * cs - halfW + cs / 2;
+      const cy = halfH - row * cs - cs / 2;
+
+      for (let d = 0; d < D; d++) {
+        const idx = gi * D + d;
+        // Each cube sits at z = d * cs (stacked outward from z=0)
+        dummy.position.set(cx, cy, d * cs);
+        dummy.updateMatrix();
+        t3.mesh.setMatrixAt(idx, dummy.matrix);
+      }
+    }
+  }
+  t3.mesh.instanceMatrix.needsUpdate = true;
+
+  // Camera distance
+  const diagW = cols * cs;
+  const diagH = rows * cs;
+  G.cam.dist = Math.max(diagW, diagH) * 1.2;
+  applyCamera();
+
+  G.hasImg = true;
+  document.getElementById('empty').classList.add('gone');
+  updateHistUI();
+}
+
+// ── UPDATE HEIGHT GRID ────────────────────────────────────────────
+function applyHeightGrid() {
+  const { t3, push } = G;
+  if (!t3.mesh) return;
+  const vis  = t3.mesh.geometry.attributes.aVisible;
+  const sel  = t3.mesh.geometry.attributes.aSelected;
+  const D    = push.depth;
+
+  for (let gi = 0; gi < push.cols * push.rows; gi++) {
+    const h = push.heightGrid[gi];
+    const s = push.selectedGrid[gi];
+    for (let d = 0; d < D; d++) {
+      const idx = gi * D + d;
+      vis.array[idx]  = d < h ? 1.0 : 0.0;
+      sel.array[idx]  = s ? 1.0 : 0.0;
+    }
+  }
+  vis.needsUpdate = true;
+  sel.needsUpdate = true;
+}
+
+// ── SELECTION ─────────────────────────────────────────────────────
+function getGridIdxAtScreen(ex, ey) {
+  const { t3, push } = G;
+  if (!t3.mesh) return -1;
+  const rect = pushC.getBoundingClientRect();
+  const ndx  = ((ex - rect.left) / rect.width)  * 2 - 1;
+  const ndy  = -((ey - rect.top)  / rect.height) * 2 + 1;
+
+  const ray = new THREE.Raycaster();
+  ray.setFromCamera(new THREE.Vector2(ndx, ndy), t3.camera);
+  const hits = ray.intersectObject(t3.mesh);
+  if (hits.length === 0) return -1;
+
+  // Skip hits on invisible instances (cubes sent to z=-99999 are still raycast-able)
+  const vis = t3.mesh.geometry.attributes.aVisible;
+  const D   = push.depth;
+  for (const hit of hits) {
+    if (vis.array[hit.instanceId] > 0.5) {
+      return Math.floor(hit.instanceId / D);
+    }
+  }
+  return -1;
+}
+
+function selectCell(gi, on) {
+  if (gi < 0) return;
+  G.push.selectedGrid[gi] = on ? 1 : 0;
+}
+
+function clearSelection() {
+  G.push.selectedGrid.fill(0);
+  applyHeightGrid();
+}
+
+function pushSelected(delta) {
+  const { push } = G;
+  // Pre-check: only proceed (and save history) if at least one height will actually change
+  let any = false;
+  for (let i = 0; i < push.selectedGrid.length; i++) {
+    if (push.selectedGrid[i]) {
+      const newH = Math.max(0, Math.min(push.depth, push.heightGrid[i] + delta));
+      if (newH !== push.heightGrid[i]) { any = true; break; }
+    }
+  }
+  if (!any) return;
+  saveHistory();
+  for (let i = 0; i < push.selectedGrid.length; i++) {
+    if (push.selectedGrid[i]) {
+      push.heightGrid[i] = Math.max(0, Math.min(push.depth, push.heightGrid[i] + delta));
+    }
+  }
+  applyHeightGrid();
+}
+
+// ── DRAG SELECT ───────────────────────────────────────────────────
+let drag = { active: false, x1:0,y1:0,x2:0,y2:0, moved: false };
+
+function getScreenPosOfCell(gi) {
+  const { t3, push } = G;
+  const col  = gi % push.cols;
+  const row  = Math.floor(gi / push.cols);
+  const cs   = push.cellSize;
+  const halfW = (push.cols * cs) / 2;
+  const halfH = (push.rows * cs) / 2;
+  const cx = col * cs - halfW + cs / 2;
+  const cy = halfH - row * cs - cs / 2;
+  const h  = push.heightGrid[gi];
+  const D  = push.depth;
+  // Use top cube's front face center
+  const wz = (h > 0 ? (h - 1) : 0) * cs + cs / 2;
+  const v  = new THREE.Vector3(cx, cy, wz);
+  v.project(t3.camera);
+  const rect = pushC.getBoundingClientRect();
+  return {
+    sx: (v.x + 1) / 2 * rect.width  + rect.left,
+    sy: (1 - (v.y + 1) / 2) * rect.height + rect.top,
+  };
+}
+
+function selectInBox(x1, y1, x2, y2, additive) {
+  const { push } = G;
+  const minX = Math.min(x1,x2), maxX = Math.max(x1,x2);
+  const minY = Math.min(y1,y2), maxY = Math.max(y1,y2);
+  if (!additive) push.selectedGrid.fill(0);
+  for (let gi = 0; gi < push.cols * push.rows; gi++) {
+    const { sx, sy } = getScreenPosOfCell(gi);
+    if (sx >= minX && sx <= maxX && sy >= minY && sy <= maxY) {
+      push.selectedGrid[gi] = 1;
+    }
+  }
+  applyHeightGrid();
+}
+
+function drawDragBox() {
+  sCtx.clearRect(0, 0, selC.width, selC.height);
+  if (!drag.active || !drag.moved) return;
+  const rect = pushC.getBoundingClientRect();
+  const x1 = drag.x1 - rect.left, y1 = drag.y1 - rect.top;
+  const x2 = drag.x2 - rect.left, y2 = drag.y2 - rect.top;
+  sCtx.strokeStyle = '#00dfff';
+  sCtx.lineWidth   = 1;
+  sCtx.globalAlpha = 0.75;
+  sCtx.strokeRect(x1, y1, x2-x1, y2-y1);
+  sCtx.fillStyle   = 'rgba(0,223,255,0.06)';
+  sCtx.fillRect(x1, y1, x2-x1, y2-y1);
+}
+
+// Push canvas pointer events
+pushC.addEventListener('pointerdown', e => {
+  if (G.mode !== 'push') return;
+  e.preventDefault();
+  pushC.setPointerCapture(e.pointerId);
+  drag = { active: true, x1: e.clientX, y1: e.clientY, x2: e.clientX, y2: e.clientY, moved: false };
+});
+
+pushC.addEventListener('pointermove', e => {
+  if (!drag.active) return;
+  drag.x2 = e.clientX; drag.y2 = e.clientY;
+  if (Math.abs(drag.x2 - drag.x1) > 4 || Math.abs(drag.y2 - drag.y1) > 4) {
+    drag.moved = true;
+    drawDragBox();
+  }
+});
+
+pushC.addEventListener('pointerup', e => {
+  if (!drag.active) return;
+  drag.active = false;
+  sCtx.clearRect(0, 0, selC.width, selC.height);
+
+  if (drag.moved) {
+    selectInBox(drag.x1, drag.y1, drag.x2, drag.y2, e.shiftKey);
+  } else {
+    // Single click
+    const gi = getGridIdxAtScreen(e.clientX, e.clientY);
+    if (!e.shiftKey) G.push.selectedGrid.fill(0);
+    if (gi >= 0) G.push.selectedGrid[gi] = 1;
+    applyHeightGrid();
+  }
+});
+
+// Scroll to orbit/zoom
+let _lastTouch2Dist = 0;
+wrap.addEventListener('wheel', e => {
+  if (G.mode !== 'push') return;
+  e.preventDefault();
+  // Normalize deltaY across deltaMode: 0=pixels, 1=lines (~20px), 2=pages (~400px)
+  const dy = e.deltaMode === 1 ? e.deltaY * 20 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
+  G.cam.dist = Math.max(50, Math.min(5000, G.cam.dist + dy * 1.2));
+  applyCamera();
+}, { passive: false });
+
+// Middle-drag to orbit
+let _midDrag = false, _midLast = null;
+wrap.addEventListener('mousedown', e => {
+  if (e.button === 1) { _midDrag = true; _midLast = { x: e.clientX, y: e.clientY }; e.preventDefault(); }
+});
+document.addEventListener('mousemove', e => {
+  if (!_midDrag) return;
+  G.cam.rotY += (e.clientX - _midLast.x) * 0.3;
+  G.cam.rotY = ((G.cam.rotY % 360) + 360) % 360; // prevent unbounded accumulation
+  G.cam.rotX += (e.clientY - _midLast.y) * 0.3;
+  G.cam.rotX = Math.max(-80, Math.min(80, G.cam.rotX));
+  _midLast = { x: e.clientX, y: e.clientY };
+  applyCamera();
+  // Sync sliders
+  document.getElementById('s-rx').value = G.cam.rotX;
+  document.getElementById('v-rx').textContent = Math.round(G.cam.rotX) + '°';
+  document.getElementById('s-ry').value = G.cam.rotY;
+  document.getElementById('v-ry').textContent = Math.round(G.cam.rotY) + '°';
+});
+document.addEventListener('mouseup', e => { if (e.button === 1) _midDrag = false; });
+
+// ═══════════════════════════════════════════════════════════════════
+// TYPE ENGINE
+// ═══════════════════════════════════════════════════════════════════
+
+function renderType() {
+  tCtx.clearRect(0, 0, typeC.width, typeC.height);
+  G.type.layers.forEach(layer => {
+    drawLayer(tCtx, layer);
+    if (layer === G.type.active) drawCursor(tCtx, layer);
+  });
+}
+
+function makeFont(layer) {
+  const w = layer.bold   ? 'bold'   : 'normal';
+  const s = layer.italic ? 'italic' : 'normal';
+  return `${s} ${w} ${layer.size}px ${layer.font}`;
+}
+
+function drawLayer(c, layer) {
+  c.save();
+  c.globalAlpha  = layer.opacity;
+  c.fillStyle    = layer.color;
+  c.font         = makeFont(layer);
+  c.textBaseline = 'top';
+  c.letterSpacing = `${layer.spacing}px`;
+
+  let cx = layer.x, cy = layer.y;
+  const step = layer.size + layer.spacing;
+
+  for (let i = 0; i < layer.text.length; i++) {
+    const ch = layer.text[i];
+    if (ch === '\n') {
+      if (layer.dir === 'right' || layer.dir === 'left')  { cx = layer.x; cy += step; }
+      else if (layer.dir === 'down' || layer.dir === 'up') { cy = layer.y; cx += (layer.dir === 'down' ? step : -step); }
+      else { cx = layer.x; cy += step; }
+      continue;
+    }
+    c.fillText(ch, cx, cy);
+    const cw = c.measureText(ch).width + layer.spacing;
+    switch (layer.dir) {
+      case 'right':  cx += cw; break;
+      case 'left':   cx -= cw; break;
+      case 'down':   cy += step; break;
+      case 'up':     cy -= step; break;
+      case 'radial': {
+        const angle = i * 0.28;
+        const r = 60 + i * (layer.size * 0.55);
+        cx = layer.x + Math.cos(angle) * r;
+        cy = layer.y + Math.sin(angle) * r;
+        break;
+      }
+    }
+  }
+  c.restore();
+}
+
+function calcCursorPos(layer) {
+  let cx = layer.x, cy = layer.y;
+  const step = layer.size + layer.spacing;
+  tCtx.font = makeFont(layer);
+  tCtx.letterSpacing = `${layer.spacing}px`;
+
+  for (let i = 0; i < layer.text.length; i++) {
+    const ch = layer.text[i];
+    if (ch === '\n') {
+      if (layer.dir === 'right' || layer.dir === 'left') { cx = layer.x; cy += step; }
+      else { cy = layer.y; cx += (layer.dir === 'down' ? step : -step); }
+      continue;
+    }
+    const cw = tCtx.measureText(ch).width + layer.spacing;
+    switch (layer.dir) {
+      case 'right':  cx += cw; break;
+      case 'left':   cx -= cw; break;
+      case 'down':   cy += step; break;
+      case 'up':     cy -= step; break;
+      case 'radial': {
+        const angle = i * 0.28;
+        const r = 60 + i * (layer.size * 0.55);
+        cx = layer.x + Math.cos(angle) * r;
+        cy = layer.y + Math.sin(angle) * r;
+        break;
+      }
+    }
+  }
+  return { cx, cy };
+}
+
+function drawCursor(c, layer) {
+  if (!G.type.blink) return;
+  const { cx, cy } = calcCursorPos(layer);
+  c.save();
+  c.fillStyle   = '#00dfff';
+  c.globalAlpha = 0.9;
+  const sz = layer.size;
+  if (layer.dir === 'right' || layer.dir === 'radial') c.fillRect(cx, cy, 2, sz);
+  else if (layer.dir === 'left')  c.fillRect(cx - 2, cy, 2, sz);
+  else if (layer.dir === 'down')  c.fillRect(cx, cy, sz * 0.6, 2);
+  else if (layer.dir === 'up')    c.fillRect(cx, cy - 2, sz * 0.6, 2);
+  c.restore();
+}
+
+setInterval(() => { G.type.blink = !G.type.blink; renderType(); }, 500);
+
+// Type canvas click — place cursor
+typeC.addEventListener('pointerdown', e => {
+  if (G.mode !== 'type') return;
+  e.preventDefault();
+  const rect = typeC.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  if (G.type.active) commitLayer();
+
+  saveHistory();
+  const t = G.type;
+  const layer = {
+    x, y, text: '',
+    font: t.font, size: t.size, spacing: t.spacing,
+    opacity: t.opacity, color: t.color, bold: t.bold, italic: t.italic,
+    dir: t.dir,
+  };
+  t.layers.push(layer);
+  t.active = layer;
+  renderType();
+  updateLayersUI();
+});
+
+function commitLayer() {
+  const t = G.type;
+  if (!t.active) return;
+  if (t.active.text.trim() === '') {
+    t.layers = t.layers.filter(l => l !== t.active);
+  }
+  t.active = null;
+  renderType();
+  updateLayersUI();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  const inInput = ['input','textarea','select'].includes(document.activeElement.tagName.toLowerCase());
+
+  // Type mode typing
+  if (G.mode === 'type' && G.type.active) {
+    if (e.key === 'Escape')    { commitLayer(); return; }
+    if (e.key === 'Backspace') { e.preventDefault(); G.type.active.text = G.type.active.text.slice(0,-1); renderType(); return; }
+    if (e.key === 'Enter')     { e.preventDefault(); G.type.active.text += '\n'; renderType(); return; }
+    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) { G.type.active.text += e.key; renderType(); return; }
+    return;
+  }
+
+  if (inInput) return;
+
+  const k = e.key.toLowerCase();
+  if (k === 'p' && !e.ctrlKey) { setMode('push'); return; }
+  if (k === 't' && !e.ctrlKey) { setMode('type'); return; }
+  if (k === 'e' && !e.ctrlKey) { exportPNG(); return; }
+  if (k === 'l' && !e.ctrlKey) { document.getElementById('btn-load').click(); return; }
+  if ((k === 'z') && (e.ctrlKey || e.metaKey)) { e.preventDefault(); undo(); return; }
+  if (k === 'escape') { if (G.mode === 'type') commitLayer(); else clearSelection(); return; }
+
+  // Push/pull with arrow keys or W/S
+  if (G.mode === 'push') {
+    const step = G.push.step;
+    if (k === 'arrowup'   || k === 'w') { e.preventDefault(); pushSelected(+step); }
+    if (k === 'arrowdown' || k === 's') { e.preventDefault(); pushSelected(-step); }
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// IMAGE LOADING
+// ═══════════════════════════════════════════════════════════════════
+function loadSrc(src) {
+  const img = new Image();
+  img.onload = () => {
+    G.img = img;
+    G.push.cellSize = parseInt(document.getElementById('s-cell').value);
+    G.push.depth    = parseInt(document.getElementById('s-depth').value);
+    buildMesh(img);
+    toast('Image loaded ✓');
+  };
+  img.src = src;
+}
+
+function loadFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const fr = new FileReader();
+  fr.onload = ev => loadSrc(ev.target.result);
+  fr.readAsDataURL(file);
+}
+
+document.getElementById('btn-load').onclick = () => document.getElementById('file-in').click();
+document.getElementById('file-in').onchange = e => { if (e.target.files[0]) loadFile(e.target.files[0]); e.target.value = ''; };
+
+const cw = document.getElementById('canvas-wrap');
+cw.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+cw.addEventListener('drop',     e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) loadFile(f); });
+document.addEventListener('paste', e => {
+  for (const item of e.clipboardData.items) {
+    if (item.type.startsWith('image/')) { const f = item.getAsFile(); if (f) { loadFile(f); break; } }
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════════════════════════════════════
+function saveHistory() {
+  const snap = {
+    heightGrid:   new Int32Array(G.push.heightGrid),
+    selectedGrid: new Uint8Array(G.push.selectedGrid),
+    layers: JSON.parse(JSON.stringify(G.type.layers)),
+  };
+  G.push.history.push(snap);
+  if (G.push.history.length > G.push.maxHist) G.push.history.shift();
+  updateHistUI();
+}
+
+function undo() {
+  if (!G.push.history.length) { toast('Nothing to undo'); return; }
+  const snap = G.push.history.pop();
+  G.push.heightGrid   = snap.heightGrid;
+  G.push.selectedGrid = snap.selectedGrid;
+  G.type.layers  = snap.layers;
+  G.type.active  = null;
+  applyHeightGrid();
+  renderType();
+  updateHistUI();
+  updateLayersUI();
+  toast('Undo');
+}
+
+function updateHistUI() {
+  document.getElementById('hist-c').textContent = G.push.history.length + ' steps';
+}
+
+document.getElementById('btn-undo').onclick = undo;
+
+document.getElementById('btn-reset').onclick = () => {
+  if (!G.hasImg) return;
+  saveHistory();
+  G.push.heightGrid.fill(Math.floor(G.push.depth / 2));
+  G.push.selectedGrid.fill(0);
+  applyHeightGrid();
+  toast('Reset');
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════════════════════
+function exportPNG() {
+  if (!G.hasImg) { toast('Load an image first'); return; }
+  if (G.type.active) commitLayer();
+
+  G.t3.renderer.render(G.t3.scene, G.t3.camera);
+
+  const exp = document.createElement('canvas');
+  const scale = 2;
+  exp.width  = pushC.width  * scale;
+  exp.height = pushC.height * scale;
+  const ec = exp.getContext('2d');
+  ec.scale(scale, scale);
+  ec.drawImage(pushC, 0, 0);
+  ec.drawImage(typeC, 0, 0);
+
+  exp.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `pushtype-${Date.now()}.png`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 'image/png');
+
+  const btn = document.getElementById('btn-export');
+  const orig = btn.innerHTML;
+  btn.innerHTML = '✓ Saved!'; btn.style.background = '#22c55e';
+  setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; }, 2000);
+}
+document.getElementById('btn-export').onclick = exportPNG;
+
+// ═══════════════════════════════════════════════════════════════════
+// MODE
+// ═══════════════════════════════════════════════════════════════════
+function setMode(mode) {
+  if (G.mode === 'type' && G.type.active) commitLayer();
+  G.mode = mode;
+
+  document.getElementById('md-push').className = 'mdbtn' + (mode === 'push' ? ' push-a' : '');
+  document.getElementById('md-type').className = 'mdbtn' + (mode === 'type' ? ' type-a' : '');
+  document.getElementById('push-panel').style.display = mode === 'push' ? '' : 'none';
+  document.getElementById('type-panel').style.display = mode === 'type' ? '' : 'none';
+
+  pushC.style.pointerEvents = mode === 'push' ? 'auto' : 'none';
+  typeC.style.pointerEvents = mode === 'type' ? 'auto' : 'none';
+  typeC.style.cursor = mode === 'type' ? 'text' : 'default';
+
+  if (mode === 'push') clearSelection();
+}
+
+document.getElementById('md-push').onclick = () => setMode('push');
+document.getElementById('md-type').onclick = () => setMode('type');
+
+// ═══════════════════════════════════════════════════════════════════
+// UI CONTROLS
+// ═══════════════════════════════════════════════════════════════════
+function bindSl(id, valId, cb, fmt) {
+  const el = document.getElementById(id);
+  const vl = valId ? document.getElementById(valId) : null;
+  el.addEventListener('input', () => {
+    const v = Number(el.value);
+    if (vl) vl.textContent = fmt ? fmt(v) : v;
+    cb(v);
+  });
+}
+
+bindSl('s-cell', 'v-cell', v => { G.push.cellSize = v; if (G.hasImg) buildMesh(G.img); }, v => v + 'px');
+bindSl('s-depth','v-depth', v => { G.push.depth = v; if (G.hasImg) buildMesh(G.img); });
+bindSl('s-step', 'v-step', v => { G.push.step = v; });
+bindSl('s-rx',   'v-rx',   v => { G.cam.rotX = v; applyCamera(); }, v => v + '°');
+bindSl('s-ry',   'v-ry',   v => { G.cam.rotY = v; applyCamera(); }, v => v + '°');
+bindSl('s-fov',  'v-fov',  v => { G.cam.fov = v; applyCamera(); }, v => v + '°');
+
+bindSl('s-fs', 'v-fs', v => { G.type.size = v; if (G.type.active) { G.type.active.size = v; renderType(); } });
+bindSl('s-ls', 'v-ls', v => { G.type.spacing = v; if (G.type.active) { G.type.active.spacing = v; renderType(); } });
+bindSl('s-op', 'v-op', v => { G.type.opacity = v/100; if (G.type.active) { G.type.active.opacity = v/100; renderType(); } }, v => v + '%');
+
+document.getElementById('sel-font').onchange = e => {
+  G.type.font = e.target.value;
+  if (G.type.active) { G.type.active.font = e.target.value; renderType(); }
+};
+
+document.getElementById('btn-bold').onclick = function() {
+  G.type.bold = !G.type.bold; this.classList.toggle('on', G.type.bold);
+  if (G.type.active) { G.type.active.bold = G.type.bold; renderType(); }
+};
+document.getElementById('btn-italic').onclick = function() {
+  G.type.italic = !G.type.italic; this.classList.toggle('on', G.type.italic);
+  if (G.type.active) { G.type.active.italic = G.type.italic; renderType(); }
+};
+
+// Type directions
+document.querySelectorAll('.tdir').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.tdir').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    G.type.dir = btn.dataset.d;
+    if (G.type.active) { G.type.active.dir = btn.dataset.d; renderType(); }
+  };
+});
+
+// BG color
+document.getElementById('bg-pick').oninput = e => {
+  if (G.t3.scene) G.t3.scene.background = new THREE.Color(e.target.value);
+};
+
+// Color swatches
+const PALETTE = ['#ffffff','#000000','#ff2868','#00dfff','#f5c842','#a855f7','#f97316','#22d3ee','#84cc16','#e11d48'];
+const swBox = document.getElementById('sw-box');
+PALETTE.forEach(col => {
+  const sw = document.createElement('div');
+  sw.className = 'sw' + (col === '#ffffff' ? ' on' : '');
+  sw.style.background = col;
+  if (col === '#000000') sw.style.boxShadow = '0 0 0 1px rgba(255,255,255,.15)';
+  sw.onclick = () => {
+    swBox.querySelectorAll('.sw').forEach(s => s.classList.remove('on'));
+    sw.classList.add('on');
+    G.type.color = col;
+    document.getElementById('color-pick').value = col;
+    if (G.type.active) { G.type.active.color = col; renderType(); }
+  };
+  swBox.appendChild(sw);
+});
+
+document.getElementById('color-pick').oninput = e => {
+  G.type.color = e.target.value;
+  swBox.querySelectorAll('.sw').forEach(s => s.classList.remove('on'));
+  if (G.type.active) { G.type.active.color = e.target.value; renderType(); }
+};
+
+// Clear text
+document.getElementById('btn-clrtxt').onclick = () => {
+  if (!G.type.layers.length) return;
+  saveHistory();
+  G.type.layers = []; G.type.active = null;
+  renderType(); updateLayersUI(); toast('Text cleared');
+};
+
+// ── LAYERS UI ─────────────────────────────────────────────────────
+function updateLayersUI() {
+  const c = document.getElementById('layers');
+  if (!G.type.layers.length) { c.innerHTML = '<div style="font-size:9px;color:#2a2a3a">No text layers</div>'; return; }
+  c.innerHTML = '';
+  G.type.layers.forEach((layer, i) => {
+    const row = document.createElement('div');
+    const on  = layer === G.type.active;
+    row.className = 'layer-row' + (on ? ' on' : '');
+    row.innerHTML = `<span>${(layer.text.replace(/\n/g,'↵').slice(0,14)) || '(empty)'}</span><span class="layer-del" data-i="${i}">✕</span>`;
+    row.addEventListener('click', ev => {
+      if (ev.target.dataset.i !== undefined) {
+        saveHistory();
+        G.type.layers.splice(+ev.target.dataset.i, 1);
+        if (!G.type.layers.includes(G.type.active)) G.type.active = null;
+        renderType(); updateLayersUI();
+      } else { G.type.active = layer; renderType(); updateLayersUI(); }
+    });
+    c.appendChild(row);
+  });
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────
+let _tt;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ── RESIZE ────────────────────────────────────────────────────────
+window.addEventListener('resize', resizeAll); // resizeAll() already calls applyCamera() internally
+
+// ═══════════════════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════════════════
+initThree();
+setMode('push');
+
+// Fade out the hint bar on first canvas interaction (UI-PT-5)
+wrap.addEventListener('pointerdown', () => {
+  document.getElementById('hint').classList.add('gone');
+}, { once: true });
+</script>
+</body>
+</html>
